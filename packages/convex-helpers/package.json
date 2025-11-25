@@ -123,6 +123,10 @@
       "types": "./server/zod4.d.ts",
       "default": "./server/zod4.js"
     },
+    "./server/valibot": {
+      "types": "./server/valibot.d.ts",
+      "default": "./server/valibot.js"
+    },
     "./react/*": {
       "types": "./react/*.d.ts",
       "default": "./react/*.js"
@@ -168,6 +172,7 @@
     "hono": "^4.0.5",
     "react": "^17.0.2 || ^18.0.0 || ^19.0.0",
     "typescript": "^5.5",
+    "valibot": "^1.1.0",
     "zod": "^3.25.0 || ^4.0.0"
   },
   "peerDependenciesMeta": {
@@ -181,6 +186,9 @@
       "optional": true
     },
     "typescript": {
+      "optional": true
+    },
+    "valibot": {
       "optional": true
     },
     "zod": {
