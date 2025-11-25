@@ -1,10 +1,19 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, expectTypeOf, test } from "vitest";
 import * as vbot from "valibot";
-import { v } from "convex/values";
-import { valibotToConvex, valibotCustomQuery, zid } from "./valibot.js";
+import { v, type GenericId, type Infer } from "convex/values";
+import {
+    valibotToConvex,
+    valibotCustomQuery,
+    valibotToConvexFields,
+    withSystemFields,
+    zid,
+} from "./valibot.js";
 import { queryGeneric, defineSchema, defineTable } from "convex/server";
 import { convexTest } from "convex-test";
 import { modules } from "./setup.test.js";
+import { Equals } from "..";
+
+function assert<_T extends true>() {}
 
 const schema = defineSchema({
     users: defineTable({
@@ -16,48 +25,139 @@ const query = queryGeneric;
 
 describe("valibotToConvex", () => {
     test("string", () => {
-        const convex = valibotToConvex(vbot.string());
-        expect(convex).toEqual(v.string());
+        const valibotValidator = vbot.string();
+        const convexValidator = v.string();
+        const result = valibotToConvex(valibotValidator);
+        
+        // Runtime check - verify the validator structure
+        expect(result).toEqual(convexValidator);
+
+        // Type check
+        assert<Equals<typeof result, typeof convexValidator>>();
+        expectTypeOf<Infer<typeof result>>().toEqualTypeOf<string>();
     });
     test("number", () => {
-        const convex = valibotToConvex(vbot.number());
-        expect(convex).toEqual(v.number());
+        const valibotValidator = vbot.number();
+        const convexValidator = v.number();
+        const result = valibotToConvex(valibotValidator);
+        
+        // Runtime check - verify the validator structure
+        expect(result).toEqual(convexValidator);
+
+        // Type check
+        assert<Equals<typeof result, typeof convexValidator>>();
+        expectTypeOf<Infer<typeof result>>().toEqualTypeOf<number>();
     });
     test("boolean", () => {
-        const convex = valibotToConvex(vbot.boolean());
-        expect(convex).toEqual(v.boolean());
+        const valibotValidator = vbot.boolean();
+        const convexValidator = v.boolean();
+        const result = valibotToConvex(valibotValidator);
+        
+        // Runtime check - verify the validator structure
+        expect(result).toEqual(convexValidator);
+
+        // Type check
+        assert<Equals<typeof result, typeof convexValidator>>();
+        expectTypeOf<Infer<typeof result>>().toEqualTypeOf<boolean>();
     });
     test("null", () => {
-        const convex = valibotToConvex(vbot.null());
-        expect(convex).toEqual(v.null());
+        const valibotValidator = vbot.null();
+        const convexValidator = v.null();
+        const result = valibotToConvex(valibotValidator);
+        
+        // Runtime check - verify the validator structure
+        expect(result).toEqual(convexValidator);
+
+        // Type check
+        assert<Equals<typeof result, typeof convexValidator>>();
+        expectTypeOf<Infer<typeof result>>().toEqualTypeOf<null>();
     });
     test("object", () => {
-        const convex = valibotToConvex(
-            vbot.object({
-                name: vbot.string(),
-                age: vbot.number(),
-            })
-        );
-        expect(convex).toEqual(
-            v.object({
-                name: v.string(),
-                age: v.number(),
-            })
-        );
+        const valibotValidator = vbot.object({
+            name: vbot.string(),
+            age: vbot.number(),
+        });
+        const convexValidator = v.object({
+            name: v.string(),
+            age: v.number(),
+        });
+        const result = valibotToConvex(valibotValidator);
+        
+        // Runtime check - verify the validator structure
+        expect(result).toEqual(convexValidator);
+
+        // Type check
+        expectTypeOf<Infer<typeof result>>().toEqualTypeOf<{
+            name: string;
+            age: number;
+        }>();
     });
     test("array", () => {
-        const convex = valibotToConvex(vbot.array(vbot.string()));
-        expect(convex).toEqual(v.array(v.string()));
+        const valibotValidator = vbot.array(vbot.string());
+        const convexValidator = v.array(v.string());
+        const result = valibotToConvex(valibotValidator);
+        
+        // Runtime check - verify the validator structure
+        expect(result).toEqual(convexValidator);
+
+        // Type check
+        assert<Equals<typeof result, typeof convexValidator>>();
+        expectTypeOf<Infer<typeof result>>().toEqualTypeOf<string[]>();
     });
     test("optional", () => {
-        const convex = valibotToConvex(vbot.optional(vbot.string()));
-        expect(convex).toEqual(v.optional(v.string()));
+        const valibotValidator = vbot.optional(vbot.string());
+        const convexValidator = v.optional(v.string());
+        const result = valibotToConvex(valibotValidator);
+        
+        // Runtime check - verify the validator structure
+        expect(result).toEqual(convexValidator);
+
+        // Type check
+        assert<Equals<typeof result, typeof convexValidator>>();
+        expectTypeOf<Infer<typeof result>>().toEqualTypeOf<string | undefined>();
     });
     test("zid", () => {
-        const convex = valibotToConvex(zid("users"));
-        // zid returns a custom validator with _def.typeName === "ConvexId"
-        // which valibotToConvex maps to v.id(tableName)
-        expect(convex).toEqual(v.id("users"));
+        const valibotValidator = zid("users");
+        const convexValidator = v.id("users");
+        const result = valibotToConvex(valibotValidator);
+        
+        // Runtime check - verify the validator structure
+        expect(result).toEqual(convexValidator);
+
+        // Type check
+        assert<Equals<typeof result, typeof convexValidator>>();
+        expectTypeOf<Infer<typeof result>>().toEqualTypeOf<GenericId<"users">>();
+    });
+});
+
+describe("valibotToConvexFields", () => {
+    test("basic fields", () => {
+        const convexFields = valibotToConvexFields({
+            name: vbot.string(),
+            age: vbot.optional(vbot.number()),
+        });
+
+        expect(convexFields.name).toEqual(v.string());
+        expect(convexFields.age).toEqual(v.optional(v.number()));
+
+        expectTypeOf<Infer<typeof convexFields.name>>().toEqualTypeOf<string>();
+        expectTypeOf<Infer<typeof convexFields.age>>().toEqualTypeOf<number | undefined>();
+    });
+});
+
+describe("withSystemFields", () => {
+    test("adds convex metadata fields", () => {
+        const schema = withSystemFields("users", {
+            name: vbot.string(),
+            age: vbot.number(),
+        });
+
+        expect(schema.name).toBeDefined();
+        expect(schema.age).toBeDefined();
+        expect(schema._id).toBeDefined();
+        expect(schema._creationTime).toBeDefined();
+
+        expectTypeOf<keyof typeof schema>().toEqualTypeOf<"name" | "age" | "_id" | "_creationTime">();
     });
 });
 

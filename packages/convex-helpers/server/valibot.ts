@@ -39,6 +39,14 @@ import type { Customization, Registration } from "./customFunctions.js";
 import { NoOp } from "./customFunctions.js";
 import { addFieldsToValidator } from "../validators.js";
 
+const ZID_SYMBOL = Symbol("convex-helpers:valibot:zid");
+
+type ZidMarker<TableName extends string = string> = {
+    [ZID_SYMBOL]: TableName;
+};
+
+type ZidSchema<TableName extends string> = vbot.GenericSchema & ZidMarker<TableName>;
+
 // #region Convex function definition with Valibot
 
 /**
@@ -169,11 +177,8 @@ export const zid = <
     const schema = vbot.custom<GenericId<TableName>>(
         (val) => typeof val === "string",
         `Invalid Id for table ${tableName}`,
-    );
-    // Store tableName in _def for valibotToConvex to read
-    (schema as any)._def = (schema as any)._def || {};
-    (schema as any)._def.tableName = tableName;
-    (schema as any)._def.typeName = "ConvexId";
+    ) as unknown as ZidSchema<TableName>;
+    schema[ZID_SYMBOL] = tableName;
     return schema;
 };
 
@@ -191,6 +196,10 @@ export function valibotToConvex<T extends vbot.GenericSchema>(
     schema: T,
 ): ConvexValidatorFromValibot<T> {
     const anySchema = schema as any;
+    const zidTableName = (schema as Partial<ZidMarker>)[ZID_SYMBOL];
+    if (zidTableName) {
+        return v.id(zidTableName) as any;
+    }
 
     if (anySchema.type === "string") {
         return v.string() as any;
@@ -241,10 +250,6 @@ export function valibotToConvex<T extends vbot.GenericSchema>(
         return v.union(...anySchema.options.map(valibotToConvex)) as any;
     }
     if (anySchema.type === "custom") {
-        // Check if it's our zid by checking _def.typeName and _def.tableName
-        if (anySchema._def?.typeName === "ConvexId" && anySchema._def?.tableName) {
-            return v.id(anySchema._def.tableName) as any;
-        }
         // For other custom validators, return v.any() as fallback
         return v.any() as any;
     }
@@ -301,7 +306,9 @@ export function withSystemFields<
  */
 type ConvexValidatorFromValibot<T extends vbot.GenericSchema> =
     // Keep this in sync with valibotToConvex implementation
-    T extends { type: "string" }
+    T extends ZidMarker<infer TableName>
+        ? VId<GenericId<TableName>>
+        : T extends { type: "string" }
         ? VString
         : T extends { type: "number" }
             ? VFloat64
