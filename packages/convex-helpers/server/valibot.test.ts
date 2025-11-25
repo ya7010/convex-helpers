@@ -9,8 +9,6 @@ import {
     zid,
 } from "./valibot.js";
 import { queryGeneric, defineSchema, defineTable } from "convex/server";
-import { convexTest } from "convex-test";
-import { modules } from "./setup.test.js";
 import { Equals } from "..";
 
 function assert<_T extends true>() {}
@@ -176,13 +174,6 @@ describe("valibotCustomQuery", () => {
                 return `Hello ${args.name}`;
             },
         });
-
-        const t = convexTest(schema, modules);
-        // We need to mock the implementation of myQuery for convexTest to work?
-        // Actually convexTest works with the defined api.
-        // But here I am defining the function locally.
-        // In zod4.functions.test.ts, they use `testApi` which is casted from `anyApi`.
-        // I can try to run it directly if possible, or I might need to setup the test environment properly.
 
         // For now, let's just verify the builder returns something that looks like a query.
         expect(myQuery).toBeDefined();
