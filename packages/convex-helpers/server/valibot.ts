@@ -5,13 +5,11 @@ import type {
     ObjectType,
     PropertyValidators,
     Validator,
-    Value,
     VAny,
     VArray,
     VBoolean,
     VFloat64,
     VId,
-    VInt64,
     VLiteral,
     VNull,
     VObject,
@@ -23,8 +21,6 @@ import type {
 import * as vbot from "valibot";
 import type {
     ActionBuilder,
-    ArgsArrayToObject,
-    DefaultFunctionArgs,
     FunctionVisibility,
     GenericActionCtx,
     GenericDataModel,
