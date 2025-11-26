@@ -187,6 +187,21 @@ export const zid = <
 // #region Valibot → Convex
 
 /**
+ * Checks if a validator is valid for use as a record key.
+ * Record keys must be v.string(), v.id(), or a union of them.
+ */
+function isValidRecordKey(validator: GenericValidator): boolean {
+    if (validator.kind === "string" || validator.kind === "id") {
+        return true;
+    }
+    if (validator.kind === "union") {
+        const unionValidator = validator as VUnion<any, any, any, any>;
+        return unionValidator.members.every(isValidRecordKey);
+    }
+    return false;
+}
+
+/**
  * Turns a Valibot validator into a Convex validator.
  *
  * @param schema Valibot schema
@@ -240,10 +255,15 @@ export function valibotToConvex<T extends vbot.GenericSchema>(
     if (anySchema.type === "record") {
         // Convex only supports string keys for records
         // Valibot record has key and value schemas
-        // We assume key is string-like or we force it to v.string() if it's generic string
         // But Convex v.record first arg is key validator, second is value validator.
-        // Wait, v.record(key, value). Key must be v.string() or v.id() or union of them.
-        return v.record(valibotToConvex(anySchema.key), valibotToConvex(anySchema.value)) as any;
+        // Key must be v.string() or v.id() or union of them.
+        const keyValidator = valibotToConvex(anySchema.key);
+        const valueValidator = valibotToConvex(anySchema.value);
+        // Check if key validator is valid for record keys (string, id, or union of them)
+        const validKey = isValidRecordKey(keyValidator) 
+            ? (keyValidator as Validator<string, "required", any>)
+            : v.string();
+        return v.record(validKey, valueValidator) as any;
     }
     if (anySchema.type === "variant") {
         // Discriminated union
@@ -344,11 +364,7 @@ type ConvexValidatorFromValibot<T extends vbot.GenericSchema> =
                                     ? Options extends readonly vbot.GenericSchema[]
                                         ? VUnion<
                                                 ConvexValidatorFromValibot<Options[number]>["type"],
-                                                {
-                                                    [Index in keyof Options]: Options[Index] extends vbot.GenericSchema
-                                                        ? ConvexValidatorFromValibot<Options[Index]>
-                                                        : never;
-                                                },
+                                        ValidatorsFromValibotOptions<Options>,
                                                 "required",
                                                 ConvexValidatorFromValibot<Options[number]>["fieldPaths"]
                                             >
@@ -359,9 +375,7 @@ type ConvexValidatorFromValibot<T extends vbot.GenericSchema> =
                                             ? Options extends readonly (string | number | boolean)[]
                                                 ? VUnion<
                                                         Options[number],
-                                                        {
-                                                            [Index in keyof Options]: VLiteral<Options[Index]>;
-                                                        },
+                                                        LiteralsFromPicklistOptions<Options>,
                                                         "required",
                                                         VLiteral<Options[number]>["fieldPaths"]
                                                     >
@@ -385,11 +399,7 @@ type ConvexValidatorFromValibot<T extends vbot.GenericSchema> =
                                                     ? Options extends readonly vbot.GenericSchema[]
                                                         ? VUnion<
                                                                 ConvexValidatorFromValibot<Options[number]>["type"],
-                                                                {
-                                                                    [Index in keyof Options]: Options[Index] extends vbot.GenericSchema
-                                                                        ? ConvexValidatorFromValibot<Options[Index]>
-                                                                        : never;
-                                                                },
+                                                                ValidatorsFromValibotOptions<Options>,
                                                                 "required",
                                                                 ConvexValidatorFromValibot<Options[number]>["fieldPaths"]
                                                             >
@@ -397,6 +407,26 @@ type ConvexValidatorFromValibot<T extends vbot.GenericSchema> =
                                                     : T extends { type: "custom" }
                                                         ? VAny
                                                         : VAny;
+
+type MutableTuple<T extends readonly any[]> = { -readonly [P in keyof T]: T[P] };
+
+type ValidatorsFromValibotOptions<Options extends readonly vbot.GenericSchema[]> =
+    MutableTuple<{
+        [Index in keyof Options]: Options[Index] extends vbot.GenericSchema
+            ? ConvexValidatorFromValibot<Options[Index]> extends GenericValidator
+                ? ConvexValidatorFromValibot<Options[Index]>
+                : never
+            : never;
+    }> extends infer Result
+        ? Result extends Validator<any, "required", any>[]
+            ? Result
+            : never
+        : never;
+
+type LiteralsFromPicklistOptions<Options extends readonly (string | number | boolean)[]> =
+    MutableTuple<{
+        [Index in keyof Options]: VLiteral<Options[Index]>;
+    }>;
 
 function customFnBuilder(
     builder: (args: any) => any,
