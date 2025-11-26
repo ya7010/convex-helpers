@@ -13,12 +13,6 @@ import { Equals } from "..";
 
 function assert<_T extends true>() {}
 
-const schema = defineSchema({
-    users: defineTable({
-        name: v.string(),
-    }),
-});
-
 const query = queryGeneric;
 
 describe("valibotToConvex", () => {
