@@ -8,7 +8,7 @@ import {
     withSystemFields,
     zid,
 } from "./valibot.js";
-import { queryGeneric, defineSchema, defineTable } from "convex/server";
+import { queryGeneric } from "convex/server";
 import { Equals } from "..";
 
 function assert<_T extends true>() {}
